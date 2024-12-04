@@ -26,7 +26,6 @@ void print_usage(char *argv[])
     fprintf(stderr, "(default: none)\n");
     fprintf(stderr, "-s sub     --- select subpartition for filesystem ");
     fprintf(stderr, "(default: none)\n");
-    fprintf(stderr, "-h help    --- print usage information and exit\n");
     fprintf(stderr, "-v verbose --- increase verbosity level\n");
 }
 
@@ -89,7 +88,7 @@ void print_inode(struct inode * node)
 }
 
 void print_file(struct inode *node, char *name) {
-    printf("%s%8d %s", get_mode(node->mode), node->size, name);
+    printf("%-10s " " %8d %s", get_mode(node->mode), node->size, name);
 }
 
 void print_single_file_contents(struct inode *node)

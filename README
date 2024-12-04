@@ -45,12 +45,43 @@ How to break it up conceptually:
 Functions planning to write: 
 - Printing:
     - print_partition_table
-    - print_superblock
+    - print_superblockyte 
     - print_inode
     - print_directory_list
 - Helpers:
-    - read_partition_table
+    - get_partition_table
+        - will first find the partition and subpartition if given, and then read the data out into the partition struct 
+        - will include checks to make sure that the partition is valid by checking its signature (0x55 in byte 510 and 0xAA in byte 511)) 
+            - check_parition
+            - check_partition_table
+    - get_superblock
+        - gets all the metadata about the filesystem out and stores it into the superblock struct
+        - includes similar checks to see if the superblock is valid 
+    - get_inodes
+        - will get all the inodes out of the inode table and store their info in inode structs
+    - get_directory
+        - will read the full inode and follow pointers into the zones to store all the directory entries
+        - will save that all into an array of directory structs. 
+    - fill_directory 
+        - get the directory contents and fill them in the directory struct
+    - get_directory_inode
+        - goes through the given path until it gets to the inode it is looking for
+        - it traverses the path and gets all the directory entries from the current directory
+        - stores that in an array of entries 
+        - then it updates how many directory entries we have just put in there by dividing the total size of the node by how much space a directory entry takes up
+        - this tells us how many entries are in that inode
+        - then it goes through that list of directory entries and compares it with the path name given
+        - if it matches, then it goes further down this path and gets the next inode in the path
+        - then we do the same thing for the next inode filled with directory entries until the path is fully searched
+        - if the path is empty at the very end it returns the last inode of the last thing in the path
+    - read_file
+        - for minget, once we find the file we have to read the contents out
+        - might have to read from indirect blocks, then direct blocks depending on how large the file is
+        - need to know how far into the indirect block the info is from the offset
+        - will read the data out into a buffer
+        - will use this global buffer to print the contents of the file later
     - parse_command_line (use getopt)
+        - 
     - read_superblock (copy all data of that into a struct)
 - Minls:
     - main (argv, argc)
@@ -60,3 +91,18 @@ Functions planning to write:
     - main (argv, argc)
     - copy_file
     - handle_sparse_zone
+
+Minix File System Understanding:
+- the partition holds the data
+- the superblock holds how many blocks per zone, how many inodes, and how many zones
+- the inode table holds info about all the inodes, each inode holds file metadata
+- the inode also holds zone pointers
+- a zone is the actual spot where the data of the file is
+- there are 7 direct zones given by default
+- if your data doesnt fit within the direct zones, you use indirect zones
+- the indirect zone points to an indirect zone table, that holds addresses of the actual indirect zones
+- follow the pointer to get the rest of the data
+* since directories are special files, use this same process to read directories * 
+    - however, the zones will not hold data, but will hold directory entries which include the inode humber and the name of the file
+    - since a directory is like a folder and can hold many files, the i-node represents the directory as a whole
+    - then the inode points to zones, and each zone holds more directory entries, or more info about the files within it

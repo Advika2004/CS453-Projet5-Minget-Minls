@@ -28,9 +28,7 @@ int main(int argc, char *argv[])
         print_partition(part);
     }
 
-    get_super_block(image_file_fd);
-
-    get_bitmaps(image_file_fd);
+    get_superblock(image_file_fd);
 
     get_inodes(image_file_fd);
 

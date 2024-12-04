@@ -45,10 +45,7 @@ int main(int argc, char *argv[])
     }
 
     /* Load and print super block */
-    get_super_block(image_file_fd);
-
-    /* Fill i-node and zone bitmaps */
-    get_bitmaps(image_file_fd);
+    get_superblock(image_file_fd);
 
     /* Load inodes into local inode list */
     get_inodes(image_file_fd);
