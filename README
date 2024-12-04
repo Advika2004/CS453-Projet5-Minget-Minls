@@ -1,0 +1,62 @@
+Task:
+- Need to write minls and minget so that I can get data out of the Minix filesystem whilst being outside of the 
+  minix filesystem
+- Minget: has to parse through all the inodes and directory entries to to list all files and directories
+- Minls: has to follow zone pointers to find where the data block is and retreive that data
+
+How to break it up conceptually:
+- Printing File: handles all the output and formatting
+    - will deal with printing different stuff for the flags (-v -p)
+- Common Helper File: includes common parsing functions
+    - parsing partition table
+        - tells me where the filesystem starts on the disk image
+        - need this to locate the superblock 
+    - reading superblock
+        - tells me the size of each block
+        - how many blocks are in each zone
+        - total i-nodes
+        - total zones
+        - zone number where the datazone starts
+        - the type of file system (magic number)
+    - locating inodes and zones
+        - tells me the type of the file and its permissions
+        - the size of the file
+        - pointers to the data zones
+        - INODES ARE NUMBERED STARTING 1 NOT 0 !!!
+    - endianess 
+        - macos M1 is big endian? and minix is little endian so need to make sure it works to parse through minix
+    - traversing directory entries
+        - directory etnries map filenames to i-nodes
+        - use that to traverse through and find the next file 
+        - or use that to find the i-node of the file to copy and then go to the zone with its data
+- Minget
+    - parse through all the valid command line arguments 
+    - traverse the direcories and find the block
+    - read the file
+    - deal with holes and empty zones 
+    - write to stdout
+- Minls
+    - parse all the valid command line arguments
+    - traverse through directoreis 
+    - know the type of the files and directories through i-node info
+    - print out the formatted strings to stdout
+
+
+Functions planning to write: 
+- Printing:
+    - print_partition_table
+    - print_superblock
+    - print_inode
+    - print_directory_list
+- Helpers:
+    - read_partition_table
+    - parse_command_line (use getopt)
+    - read_superblock (copy all data of that into a struct)
+- Minls:
+    - main (argv, argc)
+    - traverse_directory
+    - list_directory
+- Minget:
+    - main (argv, argc)
+    - copy_file
+    - handle_sparse_zone
