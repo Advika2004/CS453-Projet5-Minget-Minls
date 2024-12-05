@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "minfunc.h" //for the structs
 
-/* Macros for File Permissions */
+//macros
 #define FILE_TYPE 0170000
 #define SYM_LINK_TYPE 0120000
 #define REGULAR_FILE 0100000
@@ -23,7 +23,7 @@
 #define GET_PERM(mode, mask, c) (((mode) & (mask)) == (mask) ? c : '-')
 
 
-/* Function Declarations */
+//functions
 void print_partition(struct partition part);
 void print_super_block(struct superblock sb);
 void print_usage(char *argv[]);

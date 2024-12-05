@@ -25,7 +25,10 @@ extern struct inode *inodes;
 
 extern unsigned int zonesize;
 
-extern short p_flag, s_flag, h_flag, v_flag;
+extern short p_flag;
+extern short s_flag;
+extern short h_flag;
+extern short v_flag;
 
 extern int prim_part, sub_part;
 extern uint32_t part_start;
@@ -39,7 +42,5 @@ extern char *dst_path_string;
 extern int path_arg_count;
 extern int destination_path_args;
 
-extern uint8_t *inode_bitmap;
-extern uint8_t *zone_bitmap;
 
 #endif

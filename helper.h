@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "minfunc.h" //for structs
 
-/* Constants and Macros */
+//macros
 #define SUCCESS 0
 #define ERROR 1
 #define TRUE 1
@@ -28,24 +28,24 @@
 
 /* Structures */
 struct __attribute__ ((__packed__)) superblock {
-    uint32_t ninodes;         /* number of inodes in this filesystem */
-    uint16_t pad1;            /* make things line up properly */
-    int16_t i_blocks;         /* # of blocks used by inode bit map */
-    int16_t z_blocks;         /* # of blocks used by zone bit map */
-    uint16_t firstdata;       /* number of first data zone */
-    int16_t log_zone_size;    /* log2 of blocks per zone */
-    int16_t pad2;             /* make things line up again */
-    uint32_t max_file;        /* maximum file size */
-    uint32_t zones;           /* number of zones on disk */
-    int16_t magic;            /* magic number */
-    int16_t pad3;             /* make things line up again */
-    uint16_t blocksize;       /* block size in bytes */
-    uint8_t subversion;       /* filesystem sub–version */
+    uint32_t ninodes;         // number of inodes in this filesystem
+    uint16_t pad1;            // make things line up properly
+    int16_t i_blocks;         // # of blocks used by inode bit map
+    int16_t z_blocks;         // # of blocks used by zone bit map
+    uint16_t firstdata;       // number of first data zone
+    int16_t log_zone_size;    // log2 of blocks per zone
+    int16_t pad2;             // make things line up again
+    uint32_t max_file;        // maximum file size
+    uint32_t zones;           // number of zones on disk
+    int16_t magic;            // magic number */
+    int16_t pad3;             // make things line up again
+    uint16_t blocksize;       // block size in bytes
+    uint8_t subversion;       // filesystem sub–version 
 };
 
 struct __attribute__ ((__packed__)) inode {
-    uint16_t mode;            /* mode */
-    uint16_t links;           /* number or links */
+    uint16_t mode;           
+    uint16_t links;           
     uint16_t uid;
     uint16_t gid;
     uint32_t size;
@@ -64,14 +64,14 @@ struct __attribute__ ((__packed__)) directory {
 };
 
 
-struct partition partition;  /* Partition */
-struct superblock superblock;   /* Superblock of partition */
-struct inode *inodes;   /* Reference to all inodes */
+struct partition partition;  
+struct superblock superblock;  
+struct inode *inodes;  
 
-unsigned int zonesize;  /* Size of zone */
+unsigned int zonesize; 
 
-short p_flag;           /* Flag for if -p was provided */
-short s_flag;           /* Flag for if source was provided */
+short p_flag;          
+short s_flag;           
 short h_flag;
 short v_flag;
 
@@ -90,10 +90,7 @@ char *dst_path_string;
 int path_arg_count;
 int destination_path_args;
 
-uint8_t *inode_bitmap;
-uint8_t *zone_bitmap;
-
-/* Function Declarations */
+//functions
 int parse_cmd_line(int argc, char *argv[]);
 char **parse_path(char *string, int *path_count);
 
@@ -107,14 +104,20 @@ void check_superblock();
 void read_store_inodes(FILE *fd);
 
 struct inode *find_inode_from_path(FILE *fd, struct inode *node, int);
+
 struct directory *read_entries_from_inode(FILE *fd, struct inode *node);
+
 void populate_dir(FILE *image, struct directory *dir, int location, int size);
+
 void read_full_file_data(FILE *image, struct inode *node, uint8_t *ptr);
 
 
 void initialize_flags();
+
 void handle_flag(char opt, char *optarg, char *argv[]);
+
 int determine_image_location(int argc, char *argv[], int flagCount);
+
 void process_paths(int argc, char *argv[], int imageLoc);
 
 

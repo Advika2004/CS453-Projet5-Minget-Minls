@@ -9,6 +9,7 @@
 #include "print.h"
 #include "helper.h"
 
+//! prints out the usage statement for the program
 void print_usage(char *argv[])
 {
     if (!strcmp(argv[0], "./minls"))
@@ -29,6 +30,7 @@ void print_usage(char *argv[])
     fprintf(stderr, "-v verbose --- increase verbosity level\n");
 }
 
+//! prints out all the info about a partition for the verbose flag
 void print_partition(struct partition part)
 {
     fprintf(stderr, "Partition Contents:\n");
@@ -44,6 +46,7 @@ void print_partition(struct partition part)
     fprintf(stderr, "size         %d\n", part.size);
 }
 
+//! prints out all info about superblock
 void print_super_block(struct superblock sb)
 {
     fprintf(stderr, "Superblock Contents:\n");
@@ -61,6 +64,7 @@ void print_super_block(struct superblock sb)
     fprintf(stderr, "  subversion     %d\n\n", sb.subversion);
 }
 
+//! prints out all inode info
 void print_inode(struct inode * node)
 {
     int i;
@@ -87,6 +91,7 @@ void print_inode(struct inode * node)
     fprintf(stderr, "uint32_t %9s %8d\n", "double", node->two_indirect);
 }
 
+//! prints the file details
 void print_file(struct inode *node, char *name) {
     printf("%-10s " " %8d %s", get_mode(node->mode), node->size, name);
 }
@@ -97,13 +102,14 @@ void print_single_file_contents(struct inode *node)
 }
 
 
-//! help with formatting
+//! help with formatting the time stamps
 char *get_time(uint32_t time)
 {
     time_t t = time;
     return ctime(&t);
 }
 
+//! makes the permissions string
 char *get_mode(uint16_t mode)
 {
     char* permissions = (char *) malloc(sizeof(char) * 11);
@@ -123,6 +129,7 @@ char *get_mode(uint16_t mode)
     return permissions;
 }
 
+//! prints out the path 
 void print_path() {
     if (path_arg_count == 0) {
         printf("/");

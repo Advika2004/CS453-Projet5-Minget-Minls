@@ -1,18 +1,18 @@
-# Compiler and Flags
+#flags
 CC = gcc
 CFLAGS = -Wall -g
 
-# Targets
+#target
 all: minget minls
 
-# Executables
+#execute
 minget: minget.o helper.o print.o
 	$(CC) $(CFLAGS) -o minget minget.o helper.o print.o
 
 minls: minls.o helper.o print.o
 	$(CC) $(CFLAGS) -o minls minls.o helper.o print.o
 
-# Object Files
+#object files
 minget.o: minget.c helper.h print.h minfunc.h
 	$(CC) $(CFLAGS) -c minget.c
 
@@ -25,11 +25,11 @@ helper.o: helper.c helper.h minfunc.h
 print.o: print.c print.h minfunc.h
 	$(CC) $(CFLAGS) -c print.c
 
-# Clean Up
+#for cleaning
 clean:
 	rm -f minget minls minget.o minls.o helper.o print.o
 
-# Test
+#for testing
 test: minls minget
 	@echo Testing minls...
 	@./minls TestImage

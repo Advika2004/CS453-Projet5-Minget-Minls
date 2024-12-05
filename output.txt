@@ -447,7 +447,7 @@ M-YM-^D>M-^ M-pvIM-d^]L^?>M-(M-XM-g#XvM-N{M-#^SM-nwM-^O9_M-@M-\M-!M-^\6TM-kM-qM-
 D{M-,M-dM-^ZM-YM-a^AhM-c]@M-/^D:YhM-^JgM-*M-XmM-0M-VJ^ZM-cM-&M-^GM-^\ M-wM-5^:M-{M-1M-hB^TOM-bt^DM-mKM-Ic3M-!SM-^LM-kK^PM-~XS*IM-'FM-y,M-wdM-ZzM-wM-^^eeQyM-PMM-jM-LM-vM-^\M-^JUM-pmLM-^MM-^HM-^KM-|aM-^]TM-SM-'$^H^LM-)$M-LH	cM-$^G+b3^F7M-klM-;M-(DZ^UWM-*fM-^TQK(M-^YM-^]M-3M-^^Ve^T^BM-vPPM/home/pnico/bin/iolimit.Linux.x86_64: output character limit (2048) exceeded.
 Diffs: ( < Reference > Testfile ):
  --- Output limited to 10 lines. (There would be too much.) ---
-Binary files /home/pn-cs453/Given/Asgn5/Expected/97 and testminfs.16337 differ
+Binary files /home/pn-cs453/Given/Asgn5/Expected/97 and testminfs.26380 differ
 
 
 -----------------
@@ -462,7 +462,7 @@ M-YM-^D>M-^ M-pvIM-d^]L^?>M-(M-XM-g#XvM-N{M-#^SM-nwM-^O9_M-@M-\M-!M-^\6TM-kM-qM-
 D{M-,M-dM-^ZM-YM-a^AhM-c]@M-/^D:YhM-^JgM-*M-XmM-0M-VJ^ZM-cM-&M-^GM-^\ M-wM-5^:M-{M-1M-hB^TOM-bt^DM-mKM-Ic3M-!SM-^LM-kK^PM-~XS*IM-'FM-y,M-wdM-ZzM-wM-^^eeQyM-PMM-jM-LM-vM-^\M-^JUM-pmLM-^MM-^HM-^KM-|aM-^]TM-SM-'$^H^LM-)$M-LH	cM-$^G+b3^F7M-klM-;M-(DZ^UWM-*fM-^TQK(M-^YM-^]M-3M-^^Ve^T^BM-vPPM/home/pnico/bin/iolimit.Linux.x86_64: output character limit (2048) exceeded.
 Diffs: ( < Reference > Testfile ):
  --- Output limited to 10 lines. (There would be too much.) ---
-Binary files /home/pn-cs453/Given/Asgn5/Expected/102 and testminfs.16337 differ
+Binary files /home/pn-cs453/Given/Asgn5/Expected/102 and testminfs.26380 differ
 
 
 -----------------

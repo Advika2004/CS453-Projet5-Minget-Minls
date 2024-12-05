@@ -11,7 +11,6 @@
 
 //! finds the starting location of the partition and subpartition 
 //! checks to make sure the parition is valid, then loads its info into globals
-//? refactored and working
 
 void partition_info(FILE *disk_image) {
     // start with the partition being 0 as the default
@@ -207,7 +206,6 @@ void read_store_inodes(FILE *disk_image)
 //! gets the directory entries from the inodes
 //! the inode could be storing things in 
 //! will return a directory object and get out all the directory info
-//? has been refactored 
 
 struct directory *read_entries_from_inode(FILE *disk_image, 
                                           struct inode *inode) {
@@ -231,6 +229,11 @@ void process_direct_zones(FILE *disk_image, struct inode *inode,
 
     //  if you havent run out of direc zones and there is still data left
     for (i = 0; i < DIRECT_ZONES && *bytes_left > 0; ++i) {
+
+        if (inode->zone[i] == 0) {
+            fprintf(stderr, "Hole.\n");
+            continue; // skip this zone as it represents a hole
+        }
 
         // if the zone isnt a zero zone
         if (inode->zone[i] != 0) {
@@ -290,6 +293,11 @@ void process_indirect_zones(FILE *disk_image, struct inode *inode,
             // move to the next entry in the table
             indirect_zone_offset += IZT_ENTRY_SIZE;
 
+            if (zone_address == 0) {
+            fprintf(stderr, "Hole\n");
+            continue; // skip this zone
+            }
+
             // ff the zone address is valid, read it
             if (zone_address != 0) {
 
@@ -316,11 +324,13 @@ void process_indirect_zones(FILE *disk_image, struct inode *inode,
             }
         }
     }
+    else {
+        return;
+    }
 }
 
 //! go through the directory and get the inode info of the file specified
 //! put that into the inode struct
-//? refactored done 
 
 struct inode* find_inode_from_path(FILE *disk_image, 
                                   struct inode *current_node, 
@@ -375,7 +385,6 @@ struct inode* find_inode_from_path(FILE *disk_image,
 
 //! must go through the direct and indirect blocks to read the file data
 //! stores the file data into a buffer
-//? refactored 
 
 void read_full_file_data(FILE *disk_image, struct inode *node, uint8_t *dst) {
     
@@ -407,9 +416,9 @@ void read_direct_zone_data(FILE *disk_image, struct inode *node,
         // if the zone is empty, writes zeros to the buffer
         // when the zone is empty, and the minimum size is not zero
         // still have to read it out. if min size was zero, dont have to read
-        if (!node->zone[i] && min_size) {
+        if (!node->zone[i]) {
             memset(dst + node->size - *bytes_left, 0, min_size);
-        } 
+        }
         
         else 
         {
@@ -453,7 +462,9 @@ void read_indirect_zone_data(FILE *disk_image, struct inode *node,
         min_size = MIN(*bytes_left, zonesize);
 
         // if the actual zone is a zero zone fill the buffer with zeros
-        if (!zone && min_size) 
+
+        
+        if (zone == 0) 
         {
             memset(dst + node->size - *bytes_left, 0, min_size);
         } 
@@ -472,6 +483,11 @@ void read_indirect_zone_data(FILE *disk_image, struct inode *node,
 void read_zone(FILE *disk_image, uint8_t *dst, int node_size, 
                int bytes_left, int size, unsigned int zone) {
 
+    if (zone == 0) { 
+        memset(dst + node_size - bytes_left, 0, size);
+        return;
+    }
+
     // make the buffer to hold the data
     // make it as large as the inode size 
     uint8_t buffer[size];
@@ -483,7 +499,9 @@ void read_zone(FILE *disk_image, uint8_t *dst, int node_size,
     }
 
     // read into the buffer 
-    if (!fread(buffer, 1, size, disk_image)) {
+    // Read into the buffer
+    size_t read_count = fread(buffer, 1, size, disk_image);
+    if (read_count != size) {
         perror("fread");
         exit(ERROR);
     }
@@ -508,13 +526,10 @@ int parse_cmd_line(int argc, char *argv[])
     char *s_path;
     char *d_path;
 
-    /* Set all the flags to false to start */
     p_flag = FALSE;
     s_flag = FALSE;
     v_flag = FALSE;
 
-    /* Primary and sub partitions initialize to 0 and remain 0 if the
-     * following arg of '-p' or '-s' is invalid or does not exist */
     prim_part = 0;
     sub_part = 0;
 
@@ -525,8 +540,6 @@ int parse_cmd_line(int argc, char *argv[])
     path_arg_count = 0;
     destination_path_args = 0;
 
-    /* Set all the specified flags from the cmd line.
-     * Also set prim_part and sub_part if '-p' or '-s' is set */
     flagCount = 0;
     while ((opt = getopt(argc, argv, "vp:s:h")) != -1)
     {
@@ -552,7 +565,6 @@ int parse_cmd_line(int argc, char *argv[])
         }
     }
 
-    /* Walk back through the arguments to find where the image path is */
     imageLoc = 1;
     while(flagCount) {
         if (argv[imageLoc][0] == '-') {
@@ -561,7 +573,6 @@ int parse_cmd_line(int argc, char *argv[])
         imageLoc++;
     }
 
-    /* Check if current argument is a number */
     strcpy(temp, argv[imageLoc]);
     tempidx = 0;
     isNumber = 1;
@@ -591,7 +602,6 @@ int parse_cmd_line(int argc, char *argv[])
         dst_path = parse_path(d_path, &destination_path_args);
     }
 
-    /* If no src was provided, default to root */
     if (src_path == NULL) {
         src_path = (char **) malloc(sizeof(char *));
         *src_path = "";

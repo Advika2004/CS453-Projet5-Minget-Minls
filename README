@@ -63,22 +63,20 @@ Functions planning to write:
     - print_inode
     - print_directory_list
 - Helpers:
-    - get_partition_table
+    - read the partition table
         - will first find the partition and subpartition if given, and then read the data out into the partition struct 
         - will include checks to make sure that the partition is valid by checking its signature (0x55 in byte 510 and 0xAA in byte 511)) 
             - check_parition
             - check_partition_table
-    - get_superblock
+    - read the super block
         - gets all the metadata about the filesystem out and stores it into the superblock struct
         - includes similar checks to see if the superblock is valid 
-    - get_inodes
+    - get the inodes
         - will get all the inodes out of the inode table and store their info in inode structs
-    - get_directory
+    - get the directory entries
         - will read the full inode and follow pointers into the zones to store all the directory entries
         - will save that all into an array of directory structs. 
-    - fill_directory 
-        - get the directory contents and fill them in the directory struct
-    - get_directory_inode
+    - read the inodes
         - goes through the given path until it gets to the inode it is looking for
         - it traverses the path and gets all the directory entries from the current directory
         - stores that in an array of entries 
@@ -118,12 +116,22 @@ Functions planning to write:
     - print out the buffer
 
 Printing Functions:
+- print_usage
+    - show how to use the program.
+    - check if it’s minls or minget.
+    - print the right syntax for the command:
+    - options like -v, -p, -s.
+    - required stuff like imagefile, path, or srcpath/dstpath.
+    - explain what each option does.
+- print_partition
+    - print details about the partition:
+    - if its bootable or not.
+    - where it starts and ends (head, sector, cylinder).
+    - type of partition, first block, and size.
+- print_super_block
+    - print whats in the superblock:
+    - total inodes, zones, and block size.
+    - the size of each zone.
+    - magic number to confirm its minix.
+    - extra info like filesystem version and limits.
 
-
-
-
-stuff left: 
-printing functions re-write
-the parsing command line write with if else statements 
-then debug 
-change readme names
