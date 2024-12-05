@@ -215,10 +215,10 @@ struct directory *read_entries_from_inode(FILE *disk_image,
     struct directory *curr_dir = arr_dir;
     int bytes_left = inode->size;
 
-    // Process direct zones
+    // process direct zones
     process_direct_zones(disk_image, inode, &curr_dir, &bytes_left);
 
-    // Process indirect zones
+    // process indirect zones
     process_indirect_zones(disk_image, inode, &curr_dir, &bytes_left);
 
     return arr_dir;
@@ -348,19 +348,23 @@ struct inode* find_inode_from_path(FILE *disk_image,
 
     // look for the next part of the path
     int i;
-    for (i = 0; i < entry_count; i++) {
-        // compare the current path with the directory name
-        if (strcmp(src_path[curr_arg], (char *)dir_entries[i].name) == 0) {
-            // the path matches the name of the file
-            struct inode *next_inode = &inodes[dir_entries[i].inode - 1];
-            
-            // free the entries
-            free(dir_entries);
 
-            // keep moving down the path
-            return find_inode_from_path(disk_image, next_inode, curr_arg + 1);
-        }
+    for (i = 0; i < entry_count; i++) {
+    if (dir_entries[i].inode == 0) {
+        fprintf(stderr, "skipping deleted entry\n");
+        continue; // skip deleted entries
     }
+
+    if (strcmp(src_path[curr_arg], (char *)dir_entries[i].name) == 0) {
+        struct inode *next_inode = &inodes[dir_entries[i].inode - 1];
+        free(dir_entries);
+
+    
+        // Continue traversal for valid entries
+        return find_inode_from_path(disk_image, next_inode, curr_arg + 1);
+    }
+    }
+
 
     // if the path did not match the file
     fprintf(stderr, "Path not found\n");

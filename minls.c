@@ -72,6 +72,7 @@ int main(int argc, char *argv[])
 
         // get all the entries out from that inode 
         struct directory *dir = read_entries_from_inode(disk_image, node);
+
         for (i = 0; i < node->size / sizeof(struct directory); i++) {
 
             // go through and print evey directory entry
