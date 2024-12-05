@@ -22,26 +22,26 @@ int main(int argc, char *argv[])
         exit(ERROR);
     }
 
-    get_partition(image_file_fd);
+    partition_info(image_file_fd);
     if (v_flag) {
         printf("Partition %d:\n", prim_part);
-        print_partition(part);
+        print_partition(partition);
     }
 
-    get_superblock(image_file_fd);
+    read_superblock(image_file_fd);
 
-    get_inodes(image_file_fd);
+    read_store_inodes(image_file_fd);
 
     if (v_flag) {
         print_inode(&inodes[0]);
     }
 
-    if (!src_path_count) {
+    if (!path_arg_count) {
         exit(ERROR);
     }
 
     /* Load inode for provided source path */
-    struct inode *node = get_directory_inode(image_file_fd, &inodes[0], 0);
+    struct inode *node = find_inode_from_path(image_file_fd, &inodes[0], 0);
     if (!node->size) {
         return SUCCESS;
     }
@@ -54,11 +54,11 @@ int main(int argc, char *argv[])
 
     /* Load in files data into a local buffer */
     uint8_t *dyn_dest = malloc(node->size);
-    set_file_data(image_file_fd, node, dyn_dest);
+    read_full_file_data(image_file_fd, node, dyn_dest);
 
     /* If no destination file was provided, write the local buffer contents
      * to stdout */
-    if (!dst_path_count) {
+    if (!destination_path_args) {
         fwrite(dyn_dest, 1, node->size, stdout);
     }
         /* Otherwise open the destination file and write local buffer contents

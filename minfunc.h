@@ -19,7 +19,7 @@ struct __attribute__ ((__packed__)) partition {
 };
 
 /* Global Variables */
-extern struct partition part;
+extern struct partition partition;
 extern struct superblock sb;
 extern struct inode *inodes;
 
@@ -36,8 +36,8 @@ extern char *src_path_string;
 extern char **dst_path;
 extern char *dst_path_string;
 
-extern int src_path_count;
-extern int dst_path_count;
+extern int path_arg_count;
+extern int destination_path_args;
 
 extern uint8_t *inode_bitmap;
 extern uint8_t *zone_bitmap;

@@ -10,7 +10,7 @@
 #include "helper.h"
 
 void print_path() {
-    if (src_path_count == 0) {
+    if (path_arg_count == 0) {
         printf("/");
         return;
     }
@@ -37,31 +37,31 @@ int main(int argc, char *argv[])
     }
 
     /* Load partition table */
-    get_partition(image_file_fd);
+    partition_info(image_file_fd);
     if (v_flag)
     {
         printf("Partition %d:\n", prim_part);
-        print_partition(part);
+        print_partition(partition);
     }
 
     /* Load and print super block */
-    get_superblock(image_file_fd);
+    read_superblock(image_file_fd);
 
     /* Load inodes into local inode list */
-    get_inodes(image_file_fd);
+    read_store_inodes(image_file_fd);
     /* Print root's inode and direct zones */
     if (v_flag) {
         print_inode(&inodes[0]);
     }
 
-    struct inode *node = get_directory_inode(image_file_fd, &inodes[0], 0);
+    struct inode *node = find_inode_from_path(image_file_fd, &inodes[0], 0);
 
     /* Dir */
     if ((node->mode & MASK_DIR) == MASK_DIR) {
         print_path();
         printf(":\n");
         /* Load all files in dir */
-        struct directory *dir = get_inodes_in_dir(image_file_fd, node);
+        struct directory *dir = read_entries_from_inode(image_file_fd, node);
         /* Print files */
         for (i = 0; i < node->size / 64; i++) {
             if (dir[i].inode != 0)

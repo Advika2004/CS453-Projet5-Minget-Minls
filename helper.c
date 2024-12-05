@@ -11,93 +11,85 @@
 
 //! finds the starting location of the partition and subpartition 
 //! checks to make sure the parition is valid, then loads its info into globals
-void get_partition(FILE *disk_image)
-{
-    // the partition on disk to start looking at is 0
-    part_start = 0;
+//? refactored and working
 
-    // if there is no partition specified, just return 
-    if(!p_flag)
-    {
-        return;
+void partition_info(FILE *disk_image) {
+    // start with the partition being 0 as the default
+    partition_start = 0;
+
+    // if a partition is specified then process that
+    if (p_flag) {
+        process_partition(disk_image, prim_part, FALSE);
     }
 
-    // check that we are on the partition table part of the disk image
+    // if a subpartition is specified process that too
+    if (s_flag) {
+        process_partition(disk_image, sub_part, TRUE);
+    }
+}
+
+void process_partition(FILE *disk_image, int partition_num, 
+                        int is_subpartition) {
+
+    // make sure this is of type minix
     check_partition_table(disk_image);
 
-    //find the partition table 
-    if (fseek(disk_image, PARTITION_TABLE_LOCATION + sizeof(struct partition) *
-                                                prim_part, SEEK_SET) != 0)
-    {
+    // find the partition and move the file pointer there
+    if (find_partition(disk_image, partition_num, is_subpartition) != 0) {
         perror("fseek");
         exit(ERROR);
     }
 
-    // load the info from partition table into the struct
-    if (!fread(&part, sizeof(part), 1, disk_image))
-    {
-        perror("1fread");
+    // read partition data into the partition struct
+    if (!fread(&partition, sizeof(struct partition), 1, disk_image)) {
+        perror("fread");
         exit(ERROR);
     }
 
-    // since partition is in sectors, convert that to bytes
-    part_start = part.lFirst * SECTOR_SIZE;
+    // partition stuff comes in sectors, so convert to bytes
+    partition_start = partition.lFirst * SECTOR_SIZE;
 
-    //make sure the partition is of the minix type
-    check_partition();
-
-    // if there is no sub partition specified function can return
-    if (!s_flag)
-    {
-        return;
-    }
-
-    // make sure you are at the sub partition table on disk image 
-    check_partition_table(disk_image);
-
-    // find the sub partition in the table
-    if (fseek(disk_image, part_start + PARTITION_TABLE_LOCATION +
-                     sizeof(struct partition) * sub_part, SEEK_SET) != 0)
-    {
-        perror("fseek");
-        exit(ERROR);
-    }
-
-    // load its data into the table 
-    if (!fread(&part, sizeof(struct partition), 1, disk_image))
-    {
-        perror("2fread");
-        exit(ERROR);
-    }
-
-    // turn the subpartition into bytes as well
-    part_start = part.lFirst * SECTOR_SIZE;
-
-    // make sure the sub partition is valid 
+    // make sure the partition is of type minix
     check_partition();
 }
 
-//! have to make sure that the partition matches the MINIX magic number 
+int find_partition(FILE *disk_image, int partition_num, 
+                        int is_subpartition) {
+
+    // the index into the parition table 
+    // start location + the size of each partition * how many partitions
+    long index = PARTITION_TABLE_LOCATION + sizeof(struct partition) 
+                                            * partition_num;
+
+    // if subpartition, adjust the index by adding the main partition size
+    if (is_subpartition) {
+        index += partition_start;
+    }
+
+    // return the location of where that partition starts
+    return fseek(disk_image, index, SEEK_SET);
+}
+
+//! have to make sure that the partition matches the MINIX magic number
 void check_partition()
 {
-    if (part.type != MINIX_TYPE) {
+    if (partition.type != FILETYPE_MINIX) {
         //if the partition is not valid, print it out
-        print_partition(part);
+        print_partition(partition);
         //print error message to stderr
-        fprintf(stderr, "Partition at %d is not a minix partition\n",
-                part_start);
+        fprintf(stderr, "Not a minix partition\n");
         exit(ERROR);
     }
 }
 
-
+//! must check if the partition table matches the minix signature
 void check_partition_table(FILE *disk_image)
 {
     uint8_t byte510;
     uint8_t byte511;
 
     // moves file pointer to byte 510 (will have the table signature)
-    if (fseek(disk_image, part_start + 510, SEEK_SET) != 0)
+    if (fseek(disk_image, partition_start + 510, SEEK_SET) != 0)
     {
         // if it couldn't find that byte return error
         perror("fseek");
@@ -115,8 +107,7 @@ void check_partition_table(FILE *disk_image)
     // if byte510 does not equal the signature value
     if (byte510 != PT_510) {
         // print error
-        fprintf(stderr, "Byte 510 in partition table is not valid: %d\n",
-                byte510);
+        fprintf(stderr, "Byte 510 in partition table is not valid\n");
         exit(ERROR);
     }
 
@@ -135,11 +126,11 @@ void check_partition_table(FILE *disk_image)
 
 
 //! gets out all the info from the superblock 
-void get_superblock(FILE *disk_image)
+void read_superblock(FILE *disk_image)
 {
     // if there is no partition specified, we want to just go to first block
     // this would be 1024 after the start of the partition 
-    int seek_val = BLOCK_SIZE; 
+    int look_here = BLOCK_SIZE; 
 
     // if there is a partition specified, then have to go 1024 bytes after
     // this is where you will find the superblock
@@ -147,11 +138,11 @@ void get_superblock(FILE *disk_image)
     if (p_flag)
     {
         // have to convert the value into bytes
-        seek_val += part.lFirst * SECTOR_SIZE;
+        look_here += partition.lFirst * SECTOR_SIZE;
     }
 
     // once you calculate where superblock might be, need to search for it
-    if (fseek(disk_image, seek_val, SEEK_SET) != 0) {
+    if (fseek(disk_image, look_here, SEEK_SET) != 0) {
         // if can't find it, print error
         perror("fseek");
         exit(ERROR);
@@ -184,13 +175,13 @@ void check_superblock()
     if (superblock.magic != SUPERBLOCK_MAGIC)
     {
         // then return error
-        fprintf(stderr, "Error: filesystem is not a minix filesystem\n");
+        fprintf(stderr, "Filesystem is not of type Minix\n");
         exit(ERROR);
     }
 }
 
 //! takes the inodes out of the inode table and stores them in a list
-void get_inodes(FILE *disk_image)
+void read_store_inodes(FILE *disk_image)
 {
     // have to allocate space to store the inodes 
     // malloc for it because it can change 
@@ -199,16 +190,16 @@ void get_inodes(FILE *disk_image)
 
     // move the file pointer up until the inode table 
     // this is past the boot block, the  superblock, the bitmap blocks
-    if (fseek(disk_image, (part.lFirst * SECTOR_SIZE) + 
+    if (fseek(disk_image, (partition.lFirst * SECTOR_SIZE) + 
                           (2 + superblock.i_blocks + superblock.z_blocks) 
                            * superblock.blocksize, SEEK_SET) != 0) {
-        perror("get_inodes() fseek");
+        fprintf(stderr, "Couldn't find the inode table\n");
         exit(ERROR);
     }
 
     // read those inodes into memory with inode pointing to the first one
     if (!fread(inodes, sizeof(struct inode), superblock.ninodes, disk_image)) {
-        perror("get_inodes() fread");
+        fprintf(stderr, "Couldn't read the inode table\n");
         exit(ERROR);
     }
 }
@@ -216,132 +207,150 @@ void get_inodes(FILE *disk_image)
 //! gets the directory entries from the inodes
 //! the inode could be storing things in 
 //! will return a directory object and get out all the directory info
-//? has been changed 
+//? has been refactored 
 
-struct directory *get_inodes_in_dir(FILE *disk_image, struct inode *node) {
-    // Allocate memory for directory entries
-    struct directory *dir = (struct directory *)malloc(node->size);
-    struct directory *dir_ptr = dir;  // Pointer to current directory entry
+struct directory *read_entries_from_inode(FILE *disk_image, 
+                                          struct inode *inode) {
+    struct directory *arr_dir = (struct directory *)malloc(inode->size);
+    struct directory *curr_dir = arr_dir;
+    int bytes_left = inode->size;
 
-    int bytes_left = node->size;      // must look through the entire inode
-    int i = 0;                        // Counter for direct zones
-    unsigned int zone;
-    int indirect_zone_offset = 0;     // Offset in the indirect zone table
+    // Process direct zones
+    process_direct_zones(disk_image, inode, &curr_dir, &bytes_left);
 
-    // Process direct zones first
-    while (bytes_left > 0 && i < DIRECT_ZONES) {
-        // if the zone is not zero
-        if (node->zone[i] != 0) {
-            // find what is smaller, whatever is left to read or the whole zone
-            int min_size = MIN(bytes_left, zonesize); 
-            // put that info into directory struct
-            fill_dir(disk_image, dir_ptr, part_start + 
-                    node->zone[i] * zonesize, min_size);
+    // Process indirect zones
+    process_indirect_zones(disk_image, inode, &curr_dir, &bytes_left);
 
-            // take that out of how many bytes are left to read
-            bytes_left -= min_size;
-            // update the pointer by adding how many directories were processed
-            dir_ptr += (min_size / sizeof(struct directory));
-        }
-        i++;
-        // move to the next direct zone
-    }
-
-    // if out of direct zones and there is still more to read, go to indirect
-    if (bytes_left > 0 && node->indirect != 0) {
-        for (i = 0; bytes_left > 0 && i < zonesize / 4; i++) {
-            // size of zone / size of each entry = number of entries
-            // go to the entry in the indirect zone table
-            if (fseek(disk_image, node->indirect * zonesize + 
-                indirect_zone_offset, SEEK_SET) != 0) {
-                perror("fseek");
-                exit(ERROR);
-            }
-
-            // Read the zone address out from that table
-            if (!fread(&zone, sizeof(unsigned int), 1, disk_image)) {
-                perror("fread");
-                exit(ERROR);
-            }
-
-            // move to the next entry
-            indirect_zone_offset += 4;
-
-            // if zone address you just got is valid
-            if (zone != 0) {
-                
-                // find what is smaller, the bytes left or the rest of the zone
-                int min_size = MIN(bytes_left, zonesize);
-                // put that into directory struct
-                fill_dir(disk_image, dir_ptr, part_start + zone 
-                        * zonesize, min_size);
-
-                bytes_left -= min_size;
-                // move the pointer becuase we added more directories
-                dir_ptr += (min_size / sizeof(struct directory));
-            }
-        }
-    }
-
-    // return the directory object
-    return dir;
+    return arr_dir;
 }
 
-//! put stuff into the directory object
-void fill_dir(FILE *disk_image, struct directory *dir, int location, int size)
-{
-    // if the location to read from is not zero (not a zero zone)
-    if (location != 0)
-    {
-        // go to that location on disk 
-        if (fseek(disk_image, location, SEEK_SET) != 0)
-        {
-            perror("fseek");
-            exit(ERROR);
-        }
+void process_direct_zones(FILE *disk_image, struct inode *inode,
+                          struct directory **curr_dir, int *bytes_left) {
+    int i; // keeps track of how many direct zones have been there
+    int zone_size; // how much data is in a zone
 
-        // read the data from there and store it into the directory struct
-        if (!fread(dir, sizeof(struct directory),
-                   size / sizeof(struct directory),  disk_image))
-        {
-            perror("fread");
-            exit(ERROR);
+    //  if you havent run out of direc zones and there is still data left
+    for (i = 0; i < DIRECT_ZONES && *bytes_left > 0; ++i) {
+
+        // if the zone isnt a zero zone
+        if (inode->zone[i] != 0) {
+
+            // the size of what you need to read out
+            // is either bytes left or the rest of the zone
+            zone_size = MIN(*bytes_left, zonesize);
+
+            // move file pointer to the start of that zone
+            if (fseek(disk_image, partition_start + inode->zone[i] * zonesize, 
+                      SEEK_SET) != 0) {
+                fprintf(stderr, "Couldn't find the direct zone\n");
+                exit(ERROR);
+            }
+
+            // read data from the zone into the directory structure
+            if (!fread(*curr_dir, zone_size, 1, disk_image)) {
+                fprintf(stderr, "Couldn't read the direct zone\n");
+                exit(ERROR);
+            }
+
+            // move array pointer since we added directories
+            // update how much is left to read
+            *bytes_left -= zone_size;
+            *curr_dir += zone_size / sizeof(struct directory);
+        }
+    }
+}
+
+void process_indirect_zones(FILE *disk_image, struct inode *inode,
+                            struct directory **curr_dir, int *bytes_left) {
+    unsigned int zone_address;       // zone address read - indirect zone table
+    int indirect_zone_offset = 0;   // index into the indirect zone table
+    int zone_size;                  // size of data to read from a zone
+    int i;                          // how many zones
+
+    // as long as the indirect zone is not a zero zone
+    if (inode->indirect != 0) {
+
+        // zonesize / 4 gives you how many zones there are
+        for (i = 0; i < zonesize / IZT_ENTRY_SIZE && *bytes_left > 0; 
+             ++i) {
+                
+            // for every indirect zone, go to its place in the table
+            if (fseek(disk_image, inode->indirect * zonesize + 
+                      indirect_zone_offset, SEEK_SET) != 0) {
+                fprintf(stderr, "Couldn't find the indirect zone address\n");
+                exit(ERROR);
+            }
+
+            // read the zone address out from the table
+            if (!fread(&zone_address, sizeof(unsigned int), 1, disk_image)) {
+                fprintf(stderr, "Couldn't read the indirect zone address\n");
+                exit(ERROR);
+            }
+
+            // move to the next entry in the table
+            indirect_zone_offset += IZT_ENTRY_SIZE;
+
+            // ff the zone address is valid, read it
+            if (zone_address != 0) {
+
+                // how much to read is whatever is smaller
+                // the zone size or how much is left
+                zone_size = MIN(*bytes_left, zonesize);
+
+                // move to the start of the zone
+            if (fseek(disk_image, partition_start + zone_address * zonesize, 
+                          SEEK_SET) != 0) {
+                    fprintf(stderr, "Couldn't find the indirect zone data\n");
+                    exit(ERROR);
+                }
+
+                // read out the zone data (the directory entries)
+                if (!fread(*curr_dir, zone_size, 1, disk_image)) {
+                    fprintf(stderr, "Couldn't read the indirect zone data\n");
+                    exit(ERROR);
+                }
+
+                // update update update!
+                *bytes_left -= zone_size;
+                *curr_dir += zone_size / sizeof(struct directory);
+            }
         }
     }
 }
 
 //! go through the directory and get the inode info of the file specified
 //! put that into the inode struct
-//? been changed
+//? refactored done 
 
-struct inode* get_directory_inode(FILE *disk_image, 
+struct inode* find_inode_from_path(FILE *disk_image, 
                                   struct inode *current_node, 
-                                  int path_index) {
+                                  int curr_arg) {
 
     // if we havent looked through the whole path
-    if (path_index < src_path_count) {
+    if (curr_arg < path_arg_count) {
+
         // if the type of the current node anded with the directory mask is 0
         if (!(current_node->mode & MASK_DIR)) {
-            fprintf(stderr, "Error: %s is not a directory\n", 
-                    src_path[path_index]);
+            fprintf(stderr, "File is not a directory\n");
             exit(ERROR);
         }
     }
 
     // if we have gone through the whole path, return the current inode 
-    if (path_index >= src_path_count) {
+    if (curr_arg >= path_arg_count) {
         return current_node;
     }
 
-    // get all the entries in the directory 
-    struct directory *dir_entries = get_inodes_in_dir(disk_image, current_node);
+    // get all the entries in the inode 
+    struct directory *dir_entries = read_entries_from_inode(disk_image,
+                                                         current_node);
     int entry_count = current_node->size / sizeof(struct directory);
 
     // look for the next part of the path
     int i;
     for (i = 0; i < entry_count; i++) {
-        // Compare the current path component with the directory entry name
-        if (strcmp(src_path[path_index], (char *)dir_entries[i].name) == 0) {
+        // compare the current path with the directory name
+        if (strcmp(src_path[curr_arg], (char *)dir_entries[i].name) == 0) {
             // the path matches the name of the file
             struct inode *next_inode = &inodes[dir_entries[i].inode - 1];
             
@@ -349,139 +358,141 @@ struct inode* get_directory_inode(FILE *disk_image,
             free(dir_entries);
 
             // keep moving down the path
-            return get_directory_inode(disk_image, next_inode, path_index + 1);
+            return find_inode_from_path(disk_image, next_inode, curr_arg + 1);
         }
     }
 
     // if the path did not match the file
-    fprintf(stderr, "Error: %s not found\n", src_path[path_index]);
+    fprintf(stderr, "Path not found\n");
     free(dir_entries); // free again 
     exit(ERROR);
 }
 
 
-
 //! must go through the direct and indirect blocks to read the file data
 //! stores the file data into a buffer
-void set_file_data(FILE *disk_image, struct inode *node, uint8_t *dst) {
-    // the zone address from the indirect zone table can be held here
-    unsigned int zone;
-    // to iterate over the zones
-    int i;
-    // stores the offset when reading the zone table
-    int indirect_zone_offset = 0;
+//? refactored 
+
+void read_full_file_data(FILE *disk_image, struct inode *node, uint8_t *dst) {
+    
     // how many bytes still need to be processed
     int bytes_left = node->size;
 
-    // first go through the 7 direct zones where data could be stored
-    for(i = 0; i < DIRECT_ZONES && bytes_left > 0; i++) {
+    // read data from direct zones
+    read_direct_zone_data(disk_image, node, dst, &bytes_left);
+
+    //if there are still bytes left, read from indirect zones
+    if (bytes_left > 0) {
+        read_indirect_zone_data(disk_image, node, dst, &bytes_left);
+    }
+}
+
+void read_direct_zone_data(FILE *disk_image, struct inode *node, 
+                           uint8_t *dst, int *bytes_left) {
+    
+    // to iterate over the zones
+    int i;
+    int min_size;
+
+    for (i = 0; i < DIRECT_ZONES && *bytes_left > 0; i++) {
 
         // either will have to read the bytes left or the entire zone
         // whihever is smaller
-        int min_size = MIN(bytes_left, zonesize);
+        min_size = MIN(*bytes_left, zonesize);
 
         // if the zone is empty, writes zeros to the buffer
-        // spec says empty zones are filled with zeros
         // when the zone is empty, and the minimum size is not zero
-        // still have to read it out. if min size was zero, dont have to read 
+        // still have to read it out. if min size was zero, dont have to read
         if (!node->zone[i] && min_size) {
-            if (!memset(dst + node->size - bytes_left, 0, min_size)) {
-                perror("memset");
-                exit(ERROR);
-            }
+            memset(dst + node->size - *bytes_left, 0, min_size);
+        } 
+        
+        else 
+        {
+            // read the actual data into the buffer
+            read_zone(disk_image, dst, node->size, *bytes_left, 
+                      min_size, node->zone[i]);
         }
-        else {
-            // move file descriptor to the direct zone start
-            if(fseek(disk_image, part_start + node->zone[i] * zonesize, 
-            SEEK_SET) != 0){
-                perror("fseek");
-                exit(ERROR);
-            }
 
-            // make a buffer 
-            uint8_t buffer[min_size];
-            // read into that buffer
-            if (!fread(buffer, 1, min_size, disk_image)) {
-                perror("1fread");
-                exit(ERROR);
-            }
-
-            // copy data from buffer to destination 
-            if (!memcpy(dst + node->size - bytes_left, buffer, min_size)) {
-                perror("memcpy");
-                exit(ERROR);
-            }
-        }
-        // calculate how many bytes still need to be read
-        bytes_left -= min_size;
+        //update how much is left to read
+        *bytes_left -= min_size;
     }
+}
 
-    // if there is still stuff left to read but we run out of direct zones
-    //! zonesize/4 can be a macro = the number of entries 
-    for(i = 0; i < zonesize/4 && bytes_left > 0; i++) {
+void read_indirect_zone_data(FILE *disk_image, struct inode *node, 
+                             uint8_t *dst, int *bytes_left) {
+    int i; // to go through the zones
+    int min_size; // how much to read out
+    int indirect_zone_offset = 0; // index into the indirect table
+    unsigned int zone;
 
-        // go to that zone address
-        if (fseek(disk_image, node->indirect * zonesize + indirect_zone_offset,
-                  SEEK_SET) != 0) {
+    for (i = 0; i < zonesize / IZT_ENTRY_SIZE && *bytes_left > 0; i++) {
+        // go to the indirect zone table entry
+        if (fseek(disk_image, node->indirect * zonesize + 
+                  indirect_zone_offset, SEEK_SET) != 0) {
             perror("fseek");
             exit(ERROR);
         }
 
-        // read what is in there out into the buffer
+        // read the address of the actual zone into the zone variable
         if (!fread(&zone, sizeof(unsigned int), 1, disk_image)) {
-            perror("2fread");
+            perror("fread");
             exit(ERROR);
         }
-        // move to the next entry in the table 
-        indirect_zone_offset += 4;
 
+        // move to the next entry in the table
+        indirect_zone_offset += IZT_ENTRY_SIZE;
+
+        // now you know which table entry to look at
+        // this gives you what indirect zone to actually look at
+        // now calculate how much is left to read
+        min_size = MIN(*bytes_left, zonesize);
+
+        // if the actual zone is a zero zone fill the buffer with zeros
+        if (!zone && min_size) 
+        {
+            memset(dst + node->size - *bytes_left, 0, min_size);
+        } 
         
-        int min_size = MIN(bytes_left, zonesize);
-
-
-        // check if the indirect zone is empty, then write zeros
-        if (!zone && min_size) {
-            if (!memset(dst + node->size - bytes_left, 0, min_size)) {
-                perror("memset");
-                exit(ERROR);
-            }
+        // read the data into the actual buffer
+        else 
+        {
+         read_zone(disk_image, dst, node->size, *bytes_left, min_size, zone);
         }
 
-        else {
-            // if zone is not empty, read into buffer 
-            //! part_start + zone * zonesize could be a macro
-            if(fseek(disk_image, part_start + zone * zonesize, SEEK_SET) != 0) {
-                perror("fseek");
-                exit(ERROR);
-            }
+        //update update update
+        *bytes_left -= min_size;
+    }
+}
 
-            // reads into buffer 
-            uint8_t buffer[min_size];
-            if (!fread(buffer, 1, min_size, disk_image)) {
-                /* Exit on failure */
-                if (errno) {
-                    perror("fread");
-                    exit(ERROR);
-                }
-                // if the indirect zone is empty, write zeros
-                if (!memset(dst + node->size - bytes_left, 0, min_size)) {
-                    perror("memset");
-                    exit(ERROR);
-                }
-            }
-                //copy it over to destination
-            else if(!memcpy(dst + node->size - bytes_left, buffer, min_size)) {
-                perror("memcpy");
-                exit(ERROR);
-            }
-        }
-        // same thang
-        bytes_left -= min_size;
+void read_zone(FILE *disk_image, uint8_t *dst, int node_size, 
+               int bytes_left, int size, unsigned int zone) {
+
+    // make the buffer to hold the data
+    // make it as large as the inode size 
+    uint8_t buffer[size];
+
+    // find the start of the zone to read from 
+    if (fseek(disk_image, partition_start + zone * zonesize, SEEK_SET) != 0) {
+        perror("fseek");
+        exit(ERROR);
+    }
+
+    // read into the buffer 
+    if (!fread(buffer, 1, size, disk_image)) {
+        perror("fread");
+        exit(ERROR);
+    }
+
+    // copy the buffer into the destination (stdout? if not specified) 
+    if (!memcpy(dst + node_size - bytes_left, buffer, size)) {
+        perror("memcpy");
+        exit(ERROR);
     }
 }
 
 
-//! parsing the path and command line
+// //! parsing the path and command line
 int parse_cmd_line(int argc, char *argv[])
 {
     int isNumber; 
@@ -507,8 +518,8 @@ int parse_cmd_line(int argc, char *argv[])
     src_path = NULL;
     dst_path = NULL;
 
-    src_path_count = 0;
-    dst_path_count = 0;
+    path_arg_count = 0;
+    destination_path_args = 0;
 
     /* Set all the specified flags from the cmd line.
      * Also set prim_part and sub_part if '-p' or '-s' is set */
@@ -567,27 +578,28 @@ int parse_cmd_line(int argc, char *argv[])
         s_path = argv[imageLoc++];
         src_path_string = (char *) malloc(strlen(s_path) + 1);
         strcpy(src_path_string, s_path);
-        src_path = parse_path(s_path, &src_path_count);
+        src_path = parse_path(s_path, &path_arg_count);
     }
     if (imageLoc < argc) {
         d_path = argv[imageLoc++];
         dst_path_string = (char *) malloc(strlen(d_path) + 1);
         strcpy(dst_path_string, d_path);
-        dst_path = parse_path(d_path, &dst_path_count);
+        dst_path = parse_path(d_path, &destination_path_args);
     }
 
     /* If no src was provided, default to root */
     if (src_path == NULL) {
         src_path = (char **) malloc(sizeof(char *));
         *src_path = "";
-        src_path_count = 0;
+        path_arg_count = 0;
     }
 
     return SUCCESS;
 }
 
 
-
+//!  create an array of strings 
+//! each index will hold part of the path
 char **parse_path(char *string, int *path_count)
 {
     char **path_ptr = (char **) malloc(sizeof(char *));

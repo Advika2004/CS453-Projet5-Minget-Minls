@@ -10,6 +10,8 @@
 #define TRUE 1
 #define FALSE 0
 
+#define IZT_ENTRY_SIZE 4 //indirect zone table entry size
+
 #define DIRECT_ZONES 7
 #define PARTITION_TABLE_LOCATION 0x1BE
 #define SECTOR_SIZE 512
@@ -19,7 +21,8 @@
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-#define MINIX_TYPE 0x81 // the type of the partition (needs to be minix type)
+// the type of the partition (needs to be minix type)
+#define FILETYPE_MINIX 0x81 
 #define PT_510 0x55 // checks for the valid partition table signature 
 #define PT_511 0xAA // samesies
 
@@ -61,7 +64,7 @@ struct __attribute__ ((__packed__)) directory {
 };
 
 
-struct partition part;  /* Partition */
+struct partition partition;  /* Partition */
 struct superblock superblock;   /* Superblock of partition */
 struct inode *inodes;   /* Reference to all inodes */
 
@@ -75,7 +78,8 @@ short v_flag;
 int prim_part;
 int sub_part;
 
-uint32_t part_start;
+// global representing where the minix file system partition starts
+uint32_t partition_start; 
 
 char *image_file;
 char **src_path;
@@ -83,8 +87,8 @@ char *src_path_string;
 char **dst_path;
 char *dst_path_string;
 
-int src_path_count;
-int dst_path_count;
+int path_arg_count;
+int destination_path_args;
 
 uint8_t *inode_bitmap;
 uint8_t *zone_bitmap;
@@ -93,25 +97,59 @@ uint8_t *zone_bitmap;
 int parse_cmd_line(int argc, char *argv[]);
 char **parse_path(char *string, int *path_count);
 
-void get_partition(FILE *fd);
+void partition_info(FILE *fd);
 void check_partition_table(FILE *disk_image);
 void check_partition();
 
-void get_superblock(FILE *fd);
+void read_superblock(FILE *fd);
 void check_superblock();
 
-void get_inodes(FILE *fd);
+void read_store_inodes(FILE *fd);
 
-struct inode *get_directory_inode(FILE *fd, struct inode *node, int);
-struct directory *get_inodes_in_dir(FILE *fd, struct inode *node);
-void fill_dir(FILE *image, struct directory *dir, int location, int size);
-void set_file_data(FILE *image, struct inode *node, uint8_t *ptr);
+struct inode *find_inode_from_path(FILE *fd, struct inode *node, int);
+struct directory *read_entries_from_inode(FILE *fd, struct inode *node);
+void populate_dir(FILE *image, struct directory *dir, int location, int size);
+void read_full_file_data(FILE *image, struct inode *node, uint8_t *ptr);
 
 
 void initialize_flags();
 void handle_flag(char opt, char *optarg, char *argv[]);
 int determine_image_location(int argc, char *argv[], int flagCount);
 void process_paths(int argc, char *argv[], int imageLoc);
+
+
+int find_partition(FILE *disk_image, int partition_num, 
+                        int is_subpartition);
+void process_partition(FILE *disk_image, int partition_num, 
+                        int is_subpartition);
+
+void process_indirect_zones(FILE *disk_image, struct inode *inode,
+                            struct directory **curr_dir, int *bytes_left);
+
+void process_direct_zones(FILE *disk_image, struct inode *inode,
+                          struct directory **curr_dir, int *bytes_left);
+
+void read_zone_to_dir(FILE *disk_image, unsigned int zone_number,
+                      struct directory **curr_dir, int *bytes_left, 
+                      int zone_size);
+
+
+void read_direct_zone_data(FILE *disk_image, struct inode *node, 
+                           uint8_t *dst, int *bytes_left);
+
+void read_indirect_zone_data(FILE *disk_image, struct inode *node, 
+                             uint8_t *dst, int *bytes_left);
+
+void read_zone(FILE *disk_image, uint8_t *dst, int node_size, 
+               int bytes_left, int size, unsigned int zone);
+
+
+
+
+void initialize_flags_and_paths();
+void parse_flags(int argc, char *argv[], int *flagCount);
+int find_image_location(int argc, char *argv[], int flagCount);
+int is_number(const char *str);
 
 
 #endif
