@@ -33,4 +33,6 @@ void print_single_file_contents(struct inode *node);
 char *get_time(uint32_t time);
 char *get_mode(uint16_t mode);
 
+void print_path();
+
 #endif

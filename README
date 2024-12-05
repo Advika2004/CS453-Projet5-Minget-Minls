@@ -41,6 +41,20 @@ How to break it up conceptually:
     - know the type of the files and directories through i-node info
     - print out the formatted strings to stdout
 
+    Minix File System Understanding:
+    - the partition holds the data
+    - the superblock holds how many blocks per zone, how many inodes, and how many zones
+    - the inode table holds info about all the inodes, each inode holds file metadata
+    - the inode also holds zone pointers
+    - a zone is the actual spot where the data of the file is
+    - there are 7 direct zones given by default
+    - if your data doesnt fit within the direct zones, you use indirect zones
+    - the indirect zone points to an indirect zone table, that holds addresses of the actual indirect zones
+    - follow the pointer to get the rest of the data
+    * since directories are special files, use this same process to read directories * 
+        - however, the zones will not hold data, but will hold directory entries which include the inode humber and the name of the file
+        - since a directory is like a folder and can hold many files, the i-node represents the directory as a whole
+        - then the inode points to zones, and each zone holds more directory entries, or more info about the files within it
 
 Functions planning to write: 
 - Printing:
@@ -83,26 +97,30 @@ Functions planning to write:
     - parse_command_line (use getopt)
         - 
     - read_superblock (copy all data of that into a struct)
+
 - Minls:
     - main (argv, argc)
-    - traverse_directory
-    - list_directory
+    - parse through the command line arguments
+    - open the disk image file
+    - find the correct partition or sub partition
+    - read the superblock and make sure its of minix type
+    - follow that path all the way down to the directory 
+    - get every directory entry out of that inode
+    - print all of those out in the right format 
 - Minget:
     - main (argv, argc)
-    - copy_file
-    - handle_sparse_zone
+    - parse through the command line arguments again
+    - also open the disk image
+    - find the correct partition or subpartition
+    - find the superblock 
+    - traverse down the path to get to the file
+    - read all the contents out of the file into the buffer
+    - print out the buffer
 
-Minix File System Understanding:
-- the partition holds the data
-- the superblock holds how many blocks per zone, how many inodes, and how many zones
-- the inode table holds info about all the inodes, each inode holds file metadata
-- the inode also holds zone pointers
-- a zone is the actual spot where the data of the file is
-- there are 7 direct zones given by default
-- if your data doesnt fit within the direct zones, you use indirect zones
-- the indirect zone points to an indirect zone table, that holds addresses of the actual indirect zones
-- follow the pointer to get the rest of the data
-* since directories are special files, use this same process to read directories * 
-    - however, the zones will not hold data, but will hold directory entries which include the inode humber and the name of the file
-    - since a directory is like a folder and can hold many files, the i-node represents the directory as a whole
-    - then the inode points to zones, and each zone holds more directory entries, or more info about the files within it
+Printing Functions:
+
+stuff left: 
+printing functions re-write
+the parsing command line write with if else statements 
+then debug 
+change readme names

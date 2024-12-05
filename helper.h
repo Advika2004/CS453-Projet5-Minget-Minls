@@ -144,12 +144,7 @@ void read_zone(FILE *disk_image, uint8_t *dst, int node_size,
                int bytes_left, int size, unsigned int zone);
 
 
-
-
-void initialize_flags_and_paths();
-void parse_flags(int argc, char *argv[], int *flagCount);
-int find_image_location(int argc, char *argv[], int flagCount);
-int is_number(const char *str);
+void write_to_output(uint8_t *data, size_t size, const char *output_path);
 
 
 #endif

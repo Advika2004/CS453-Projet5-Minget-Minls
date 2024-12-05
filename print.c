@@ -122,3 +122,11 @@ char *get_mode(uint16_t mode)
 
     return permissions;
 }
+
+void print_path() {
+    if (path_arg_count == 0) {
+        printf("/");
+        return;
+    }
+    printf("%s", src_path_string);
+}

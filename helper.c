@@ -629,3 +629,35 @@ char **parse_path(char *string, int *path_count)
 
     return path_ptr;
 }
+
+void write_to_output(uint8_t *data, size_t size, const char *output_path) {
+    
+    // where to write to
+    FILE *output;
+
+    // if output path is given, then write to it
+    if (output_path != NULL) 
+    {
+        output = fopen(output_path, "w");
+
+        // if it can't be opened then error 
+        if (!output) 
+        {
+            perror("open");
+            exit(ERROR);
+        }
+    } 
+
+    else 
+    {
+        output = stdout;
+    }
+
+    // write to there
+    fwrite(data, 1, size, output);
+
+    // close it
+    if (output_path != NULL) {
+        fclose(output);
+    }
+}
